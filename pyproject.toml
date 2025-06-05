@@ -3,7 +3,7 @@ name = "screening-system"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "Giulio Indennitate",email = "giulio.indennitate@gmail.com"}
+    { name = "Giulio Indennitate", email = "giulio.indennitate@gmail.com" },
 ]
 readme = "README.md"
 requires-python = ">=3.13"
@@ -14,7 +14,17 @@ dependencies = [
     "psycopg2-binary (==2.9.10)",
     "drf-spectacular (==0.28.0)",
     "drf-standardized-errors[openapi] (==0.14.1)",
-    "django-health-check (==3.18.3)"
+    "django-health-check (==3.18.3)",
+    "django-redis (==5.4.0)",
+    "celery (==5.4.0)",
+    "httpx (==0.28.1)",
+    "pydantic-settings (==2.8.1)",
+    "pydantic (==2.10.6)",
+    "djangorestframework-simplejwt (==5.5.0)",
+    "django-celery-results (==2.5.1)",
+    "djangogrpcframework (==0.2.1)",
+    "grpcio (==1.71.0)",
+    "grpcio-tools (==1.71.0)",
 ]
 
 
@@ -35,3 +45,174 @@ pytest-sugar = "1.0.0"
 model-bakery = "1.20.1"
 debugpy = "1.8.12"
 
+[tool.ruff]
+target-version = "py313"
+include = ["{app,screening,tests}/**/*.{py,pyi}", "pyproject.toml"]
+line-length = 120
+src = ["app", "screening", "tests"]
+
+[tool.ruff.lint]
+flake8-builtins.builtins-allowed-modules = ["typing", "logging"]
+exclude = ["**/*/migrations/**/*.*"]
+select = [
+    "A",   # flake8-builtins
+    "B",   # flake8-bugbear
+    "BLE", # flake8-blind-except
+    "C4",  # flake8-comprehensions
+    "C90", # mccabe
+    "D",   # pydocstyle
+    "DJ",  # flake8-django
+    "DTZ", # flake8-datetimez
+    "E",   # pycodestyle errors
+    "ERA", # eradicate
+    "EXE", # flake8-executable
+    "F",   # pyflakes
+    "G",   # flake8-logging-format
+    "I",   # isort
+    "ICN", # flake8-import-conventions
+    "ISC", # flake8-implicit-str-concat
+    "N",   # pep8-naming
+    "PIE", # flake8-pie
+    "PLC", # pylint - convention
+    "PLE", # pylint - error
+    "PLW", # pylint - warning
+    "PTH", # flake8-use-pathlib
+    "Q",   # flake8-quotes
+    "RET", # flake8-return
+    "RUF", # Ruff-specific rules
+    "S",   # flake8-bandit
+    "SIM", # flake8-simplify
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "TID", # flake8-tidy-imports
+    "UP",  # pyupgrade
+    "W",   # pycodestyle - warning
+    "YTT", # flake8-2020
+]
+ignore = [
+    "A003",    # flake8-builtins - class attribute {name} is shadowing a python builtin
+    "B010",    # flake8-bugbear - do not call setattr with a constant attribute value
+    "D100",    # pydocstyle - missing docstring in public module
+    "D104",    # pydocstyle - missing docstring in public package
+    "D105",    # pydocstyle - missing docstring in magic method
+    "D106",    # pydocstyle - missing docstring in public nested class
+    "E501",    # pycodestyle line too long, handled by ruff format
+    "PLW2901", # pylint - for loop variable overwritten by assignment target
+    "RUF012",  # Ruff-specific rule - annotated with classvar
+    "ISC001",  # Ruff formatter incompatible
+]
+pydocstyle.convention = "google"
+isort.known-first-party = ["app", "screening", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/*tests/**/*.*" = [
+    "A",
+    "ARG",
+    "B",
+    "BLE",
+    "C901",
+    "D",
+    "DTZ",
+    "EM",
+    "FBT",
+    "G",
+    "N",
+    "PGH",
+    "PIE",
+    "PLR",
+    "PLW",
+    "PTH",
+    "RSE",
+    "S",
+    "S101",
+    "SIM",
+    "TCH",
+    "TRY",
+    "E721",
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88
+
+
+[tool.mypy]
+files = ["app", "screening"]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = "^(migrations|.*migrations/).*"
+plugins = [
+    "mypy_django_plugin.main",
+    "mypy_drf_plugin.main",
+    "pydantic.mypy",
+    "numpy.typing.mypy_plugin",
+]
+
+[tool.django-stubs]
+django_settings_module = "app.settings"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "app.settings"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "app.asgi"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "app.wsgi"
+ignore_errors = true
+
+
+[tool.pytest.ini_options]
+addopts = [
+    "-ra",
+    "--cov=app",
+    "--cov=screening",
+    "--cov-report=term-missing",
+    "--create-db",
+    "--reuse-db",
+]
+DJANGO_SETTINGS_MODULE = "app.settings"
+testpaths = ["tests"]
+markers = ["unit: mark a unit test.", "integration: mark an integration test."]
+filterwarnings = [
+    "ignore::DeprecationWarning:importlib._bootstrap",
+    "ignore::DeprecationWarning:opentelemetry.instrumentation.dependencies",
+    "ignore::DeprecationWarning:pkg_resources",
+]
+tmp_path_retention_policy = "none"
+
+
+[tool.coverage.report]
+exclude_lines = [
+    'if TYPE_CHECKING:',
+    'pragma: no cover',
+    "if __name__ == .__main__.:",
+    'def __repr__',
+    'if self\.debug:',
+    'if settings\.DEBUG',
+    'raise AssertionError',
+    'raise NotImplementedError',
+    'if 0:',
+    'class .*\bProtocol\):',
+    '@(abc\.)?abstractmethod',
+]
+omit = ["*/tests/*"]
+show_missing = true
+
+[tool.coverage.run]
+omit = [
+    "**/*/__init__.py",
+    "**/*/asgi.py",
+    "**/*/wsgi.py",
+    "**/*/settings.py",
+    "**/*/migrations/**/*.py",
+    "**/*/manage.py",
+]

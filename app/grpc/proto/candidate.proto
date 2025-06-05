@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package candidate;
+
+service CandidateController {
+    rpc GetCandidateStatus(CandidateIdRequest) returns (Candidate) {}
+}
+
+message Candidate {
+    string status = 1;
+    ScreeningLog screening_log = 2;
+}
+
+message ScreeningLog {
+    bool is_duplicate = 1;
+    bool is_blacklisted = 2;
+    bool is_email_format_valid = 3;
+}
+
+message CandidateIdRequest {
+    string id = 1;
+}

@@ -1,0 +1,92 @@
+
+
+services:
+  init_container: &init_container
+    image: screening-system:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: >
+      /bin/sh -c "python manage.py migrate"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=screening_db
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=user
+      - POSTGRES_PORT=5432
+      - POSTGRES_PASSWORD=secretpassword
+    volumes:
+      - ./app:/app/app
+      - ./screening:/app/screening
+
+  web:
+    <<: *init_container
+    entrypoint: >
+      /bin/sh -c "python manage.py runserver 0.0.0.0:8000"
+    depends_on:
+      init_container:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", '-H',"Accept: application/json","-f", "http://localhost:8000/health/startup-probe/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    ports:
+      - 8000:8000
+
+  grpc:
+    <<: *init_container
+    entrypoint: >
+      /bin/sh -c "python manage.py grpc_runserver 0.0.0.0:50051 --dev"
+    depends_on:
+      init_container:
+        condition: service_completed_successfully
+    ports:
+      - 50051:50051
+
+  worker:
+    <<: *init_container
+    entrypoint: >
+      /bin/sh -c "celery -A app worker -l INFO"
+    ports: []
+    depends_on:
+      init_container:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=screening_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=secretpassword
+    healthcheck:
+      test: [ "CMD-SHELL", "sh -c 'pg_isready -U user -d screening_db'" ]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    name: screening-postgres-data
